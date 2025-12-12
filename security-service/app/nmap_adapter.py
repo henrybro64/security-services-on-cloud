@@ -7,7 +7,7 @@ from .models import Port, AssetInfo, ScanRequest
 logger = logging.getLogger("security-service.nmap")
 
 
-def run_nmap_scan(scan_req: ScanRequest) -> Tuple[AssetInfo, str, str]:
+def run_nmap_scan(scan_req: ScanRequest, timeout_seconds: int = 60) -> Tuple[AssetInfo, str, str]:
     """
     Run nmap against the given target and convert the result into AssetInfo.
 
@@ -25,12 +25,17 @@ def run_nmap_scan(scan_req: ScanRequest) -> Tuple[AssetInfo, str, str]:
 
     logger.info("Running nmap: %s", " ".join(cmd))
 
-    proc = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired:
+        logger.error("nmap timed out after %ss for target=%s", timeout_seconds, target)
+        raise RuntimeError(f"nmap scan timed out after {timeout_seconds}s")
 
     if proc.returncode not in (0, 1):  # 1 often means "some info" but not fatal
         logger.error(

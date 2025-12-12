@@ -1,4 +1,7 @@
-from fastapi import FastAPI, HTTPException
+import asyncio
+import asyncio
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 import json
@@ -40,6 +43,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# -----------------------------------------------------------------------------
+# Simple API Key auth (header: X-API-Key)
+# -----------------------------------------------------------------------------
+API_KEY = os.getenv("API_KEY")
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def require_api_key(api_key: str = Depends(api_key_header)):
+    if not API_KEY:
+        return  # auth disabled when key not set
+    if api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+    return api_key
 
 # -----------------------------------------------------------------------------
 # Root redirect to docs
@@ -88,7 +105,7 @@ def health_check():
 # -----------------------------------------------------------------------------
 
 @app.post("/check", response_model=RiskResult)
-def check_security(asset: AssetInfo):
+def check_security(asset: AssetInfo, _: str = Depends(require_api_key)):
     """
     Evaluate risk for a given asset configuration.
 
@@ -131,7 +148,7 @@ def check_security(asset: AssetInfo):
 
 
 @app.get("/check/{request_id}", response_model=RiskResult)
-def get_check_result(request_id: str):
+def get_check_result(request_id: str, _: str = Depends(require_api_key)):
     """
     Retrieve a previously computed result by request_id from Redis.
     """
@@ -149,14 +166,14 @@ def get_check_result(request_id: str):
 
 
 @app.post("/scan", response_model=ScanResponse)
-async def scan_and_check(scan_req: ScanRequest):
+async def scan_and_check(scan_req: ScanRequest, _: str = Depends(require_api_key)):
     """
     Run nmap against the target, derive AssetInfo, and evaluate risk.
     Uses the existing rule engine, so you don't have to manually enter ports.
     """
     try:
         # run_nmap_scan returns (AssetInfo, detected_os, raw_output)
-        asset, detected_os, raw_output = run_nmap_scan(scan_req)
+        asset, detected_os, raw_output = await asyncio.to_thread(run_nmap_scan, scan_req)
     except Exception as e:
         logger.error("nmap scan failed: %s", e)
         raise HTTPException(status_code=500, detail=f"nmap scan failed: {e}")

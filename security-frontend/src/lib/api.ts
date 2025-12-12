@@ -45,13 +45,22 @@ export type ScanHostResponse = {
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+
+const buildHeaders = () => {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (API_KEY) {
+    headers["X-API-Key"] = API_KEY;
+  }
+  return headers;
+};
 
 export async function runSecurityCheck(
   payload: CheckRequest
 ): Promise<RiskResult> {
   const res = await fetch(`${API_BASE_URL}/check`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders(),
     body: JSON.stringify(payload),
   });
 
@@ -70,7 +79,7 @@ export async function runHostScan(
 ): Promise<ScanHostResponse> {
   const res = await fetch(`${API_BASE_URL}/scan`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders(),
     body: JSON.stringify(payload),
   });
 

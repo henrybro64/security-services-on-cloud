@@ -42,6 +42,11 @@ resource "azurerm_container_app" "backend" {
       }
 
       env {
+        name  = "REDIS_SSL"
+        value = "true"
+      }
+
+      env {
         name        = "REDIS_PASSWORD"
         secret_name = "redis-password"
       }
@@ -89,8 +94,8 @@ resource "azurerm_container_app" "frontend" {
 
       # Tell frontend how to reach backend
       env {
-        name  = "BACKEND_BASE_URL"
-        value = azurerm_container_app.backend.latest_revision_fqdn
+        name  = "NEXT_PUBLIC_API_BASE_URL"
+        value = "https://${azurerm_container_app.backend.latest_revision_fqdn}"
       }
     }
   }
@@ -104,4 +109,17 @@ resource "azurerm_container_app" "frontend" {
       percentage      = 100
     }
   }
+}
+
+# Allow container apps to pull images from ACR using managed identity
+resource "azurerm_role_assignment" "backend_acr_pull" {
+  scope                = azurerm_container_registry.acr.id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_container_app.backend.identity[0].principal_id
+}
+
+resource "azurerm_role_assignment" "frontend_acr_pull" {
+  scope                = azurerm_container_registry.acr.id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_container_app.frontend.identity[0].principal_id
 }

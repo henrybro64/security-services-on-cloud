@@ -60,21 +60,39 @@ export default function HomePage() {
   }, [riskResult]);
 
   const parsePorts = (text: string): PortInput[] => {
-    return text
+    const lines = text
       .split("\n")
       .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const [portStr, protocol, exposure] = line.split("/");
-        const port = Number(portStr);
-        const prot = protocol || "tcp";
-        const exposed = (exposure || "public").toLowerCase() === "public";
-        return {
-          port,
-          protocol: prot,
-          exposed_to_internet: exposed,
-        };
+      .filter(Boolean);
+
+    const parsed: PortInput[] = [];
+
+    for (const line of lines) {
+      const [portStr, protocol, exposure] = line.split("/");
+      const port = Number(portStr);
+
+      if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+        throw new Error(`Invalid port "${portStr}" in "${line}"`);
+      }
+
+      const prot = (protocol || "tcp").toLowerCase();
+      if (prot !== "tcp" && prot !== "udp") {
+        throw new Error(`Protocol must be tcp or udp in "${line}"`);
+      }
+
+      const exposed = (exposure || "public").toLowerCase();
+      if (exposed !== "public" && exposed !== "private") {
+        throw new Error(`Exposure must be public/private in "${line}"`);
+      }
+
+      parsed.push({
+        port,
+        protocol: prot,
+        exposed_to_internet: exposed === "public",
       });
+    }
+
+    return parsed;
   };
 
   // ------------------------------------------------------------------
@@ -132,10 +150,19 @@ export default function HomePage() {
     setCurrentDetectedOs(os);
 
     try {
+      let open_ports: PortInput[];
+      try {
+        open_ports = parsePorts(portsText);
+      } catch (parseErr: any) {
+        setError(parseErr.message || "Invalid port entry");
+        setLoading(false);
+        return;
+      }
+
       const payload: CheckRequest = {
         os,
         public_ip: publicIp,
-        open_ports: parsePorts(portsText),
+        open_ports,
       };
 
       const res: any = await runSecurityCheck(payload);

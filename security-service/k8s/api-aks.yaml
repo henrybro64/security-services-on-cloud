@@ -15,9 +15,9 @@ spec:
     spec:
       containers:
         - name: api
-          # 🔴 REPLACE WITH YOUR REAL ACR NAME AND TAG
-          # Example: mysecurityacr.azurecr.io/security-service-api:v1
-          image: <ACR_NAME>.azurecr.io/security-service-api:<TAG>
+          # Image will be set/updated by GitHub Actions (backend-aks.yml)
+          # This can stay as a placeholder; the workflow patches it.
+          image: youracr.azurecr.io/security-service-api:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
@@ -57,5 +57,9 @@ spec:
   ports:
     - port: 80
       targetPort: 8000
-  # 👉 For AKS we use LoadBalancer to get an external IP
   type: LoadBalancer
+  # IMPORTANT:
+  # After `terraform apply`, run `terraform output api_public_ip` and
+  # put that value here so AKS uses the static Public IP from Terraform.
+  # Note: loadBalancerIP works for Azure AKS, though it's deprecated in newer K8s versions.
+  loadBalancerIP: REPLACE_WITH_API_PUBLIC_IP_FROM_TERRAFORM

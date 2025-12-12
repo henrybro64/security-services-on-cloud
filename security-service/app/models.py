@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 
 class Port(BaseModel):
@@ -17,7 +17,7 @@ class AssetInfo(BaseModel):
 class IpReputation(BaseModel):
     score: int                     # 0–100 from provider
     is_malicious: bool
-    categories: List[str] = []
+    categories: List[str] = Field(default_factory=list)
     source: str = "AbuseIPDB"
     raw: Optional[Dict[str, Any]] = None  # raw provider payload
 

@@ -1,0 +1,97 @@
+name: Build and deploy backend to AKS
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "security-service/**"
+      - ".github/workflows/backend-aks.yml"
+
+env:
+  # === CHANGE THESE TO MATCH YOUR AZURE RESOURCES ===
+  AZURE_CONTAINER_REGISTRY: youracr.azurecr.io   # e.g. securityserviceacr.azurecr.io
+  ACR_NAME: youracr                              # short name of the ACR, without .azurecr.io
+  RESOURCE_GROUP: your-aks-resource-group        # RG containing the AKS cluster
+  CLUSTER_NAME: your-aks-cluster                 # Name of your AKS cluster
+  IMAGE_NAME: security-service-api               # Image repo name in ACR
+  K8S_NAMESPACE: security-service                # Namespace we use in k8s/*.yaml
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1) Login to Azure (OIDC or service principal)
+      # OIDC (recommended):
+      #   - create AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID secrets
+      # Service principal JSON:
+      #   - instead use: with: creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # 2) Set AKS context so kubectl talks to the right cluster
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ env.RESOURCE_GROUP }}
+          cluster-name: ${{ env.CLUSTER_NAME }}
+
+      # 3) Log in to ACR for docker push
+      - name: Docker login to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.AZURE_CONTAINER_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      # 4) Build and push the backend image
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./security-service
+          push: true
+          tags: |
+            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      # 5) Install kubectl (if runner doesn't already have it)
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "latest"
+
+      # 6) Apply manifests and update image
+      - name: Deploy to AKS
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Ensure namespace exists
+          kubectl apply -f security-service/k8s/namespace.yaml
+
+          # Config & Redis
+          kubectl apply -f security-service/k8s/configmap.yaml
+          kubectl apply -f security-service/k8s/redis.yaml
+
+          # Create or update secret from GitHub secret (no real key in Git!)
+          kubectl create secret generic security-service-secrets \
+            -n "${K8S_NAMESPACE}" \
+            --from-literal=ABUSEIPDB_API_KEY="${{ secrets.ABUSEIPDB_API_KEY }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          # Apply Deployment + Service for API (AKS version)
+          kubectl apply -f security-service/k8s/api-aks.yaml
+
+          # Patch the Deployment to use the image built for this commit
+          kubectl set image deployment/security-service-api \
+            api=${AZURE_CONTAINER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} \
+            -n "${K8S_NAMESPACE}"
+
+          # Optional sanity check
+          kubectl -n "${K8S_NAMESPACE}" rollout status deployment/security-service-api
