@@ -8,13 +8,13 @@ on:
       - ".github/workflows/backend-aks.yml"
 
 env:
-  # === CHANGE THESE TO MATCH YOUR AZURE RESOURCES ===
-  AZURE_CONTAINER_REGISTRY: youracr.azurecr.io   # e.g. securityserviceacr.azurecr.io
-  ACR_NAME: youracr                              # short name of the ACR, without .azurecr.io
-  RESOURCE_GROUP: your-aks-resource-group        # RG containing the AKS cluster
-  CLUSTER_NAME: your-aks-cluster                 # Name of your AKS cluster
-  IMAGE_NAME: security-service-api               # Image repo name in ACR
-  K8S_NAMESPACE: security-service                # Namespace we use in k8s/*.yaml
+  # Azure resources (from Terraform deployment)
+  AZURE_CONTAINER_REGISTRY: securityserviceacr.azurecr.io
+  ACR_NAME: securityserviceacr
+  RESOURCE_GROUP: securityproj-rg
+  CLUSTER_NAME: securityproj-aks
+  IMAGE_NAME: security-service-api
+  K8S_NAMESPACE: security-service    # Namespace we use in k8s/*.yaml
 
 jobs:
   build-and-deploy:

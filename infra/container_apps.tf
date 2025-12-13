@@ -1,6 +1,8 @@
 # ---------------------------
 # Backend Container App (FastAPI)
 # ---------------------------
+
+/*
 resource "azurerm_container_app" "backend" {
   name                         = "${var.project_name}-backend"
   resource_group_name          = azurerm_resource_group.rg.name
@@ -64,6 +66,7 @@ resource "azurerm_container_app" "backend" {
   }
 }
 
+
 # ---------------------------
 # Frontend Container App (Next.js/React)
 # ---------------------------
@@ -123,3 +126,4 @@ resource "azurerm_role_assignment" "frontend_acr_pull" {
   role_definition_name = "AcrPull"
   principal_id         = azurerm_container_app.frontend.identity[0].principal_id
 }
+*/
