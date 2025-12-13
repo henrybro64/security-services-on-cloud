@@ -27,19 +27,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1) Login to Azure
-      # Option A: OIDC (recommended) - requires AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
-      # Option B: Service Principal - requires AZURE_CREDENTIALS (JSON)
+      # 1) Login to Azure using OIDC (OpenID Connect)
+      # Requires AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID secrets
+      # Federated identity credentials must be configured in Azure AD
       - name: Azure login
         uses: azure/login@v2
         with:
-          # For OIDC (recommended):
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          enable-AzPSSession: false
-          # For Service Principal (alternative - uncomment and comment out above):
-          # creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       # 2) Set AKS context so kubectl talks to the right cluster
       - name: Set AKS context
