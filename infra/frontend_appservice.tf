@@ -1,11 +1,12 @@
 # App Service Plan for frontend (Linux, Node)
+# Using Free tier (F1) - no quota required
 resource "azurerm_service_plan" "frontend_plan" {
   name                = "${var.project_name}-frontend-plan"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
   os_type  = "Linux"
-  sku_name = "B1" # Basic, enough for demo; you can adjust later
+  sku_name = "F1" # Free tier - no quota required
 }
 
 resource "azurerm_linux_web_app" "frontend" {
