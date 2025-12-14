@@ -8,10 +8,10 @@ on:
       - ".github/workflows/frontend-appservice.yml"
 
 env:
-  # === CHANGE THESE TO MATCH YOUR AZURE RESOURCES ===
-  AZURE_WEBAPP_NAME: your-frontend-webapp        # Name of your App Service (from Terraform)
-  RESOURCE_GROUP: your-resource-group            # Resource group containing the App Service
-  NODE_VERSION: "20"                             # Node.js version (e.g., "18", "20", "22")
+  # Azure resources (from Terraform deployment)
+  AZURE_WEBAPP_NAME: securityproj-frontend-webapp
+  RESOURCE_GROUP: securityproj-rg
+  NODE_VERSION: "20"
 
 jobs:
   build-and-deploy:

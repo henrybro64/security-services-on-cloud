@@ -1,14 +1,7 @@
-/*
-output "frontend_fqdn" {
-  description = "Public URL of the frontend"
-  value       = azurerm_container_app.frontend.latest_revision_fqdn
+output "frontend_url" {
+  description = "Public URL of the frontend App Service"
+  value       = "https://${azurerm_linux_web_app.frontend.default_hostname}"
 }
-
-output "backend_fqdn" {
-  description = "Public URL of the backend API"
-  value       = azurerm_container_app.backend.latest_revision_fqdn
-}
-*/
 output "acr_login_server" {
   description = "ACR login server"
   value       = azurerm_container_registry.acr.login_server
