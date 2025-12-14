@@ -13,6 +13,8 @@ spec:
       labels:
         app: security-service-api
     spec:
+      imagePullSecrets:
+        - name: acr-secret
       containers:
         - name: api
           # Image will be set/updated by GitHub Actions (backend-aks.yml)
