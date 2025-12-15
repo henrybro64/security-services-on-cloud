@@ -17,7 +17,7 @@ resource "azurerm_container_app" "backend" {
   }
 
   template {
-    min_replicas = 0
+    min_replicas = 1
     max_replicas = 3
 
     container {
@@ -92,7 +92,7 @@ resource "azurerm_container_app" "frontend" {
   # Registry auth configured by GitHub Actions when deploying real images
 
   template {
-    min_replicas = 0
+    min_replicas = 1
     max_replicas = 3
 
     container {
