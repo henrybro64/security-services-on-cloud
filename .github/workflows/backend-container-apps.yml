@@ -119,4 +119,3 @@ jobs:
               --resource-group ${{ env.RESOURCE_GROUP }} \
               -o table
           fi
-
