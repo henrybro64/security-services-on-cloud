@@ -39,7 +39,11 @@ jobs:
         run: |
           az acr login --name ${{ env.ACR_NAME }}
 
-      # 3) Build and push the frontend image
+      # 3) Set up Docker Buildx for registry cache support
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 4) Build and push the frontend image
       # Using Docker layer caching to speed up builds (saves 5-10 minutes)
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
@@ -55,7 +59,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
 
-      # 4) Update Container App with new image and configure registry
+      # 5) Update Container App with new image and configure registry
       # Note: Container App is created by Terraform with placeholder image (no registry block)
       # This step adds registry authentication and updates the image
       - name: Update Container App with new image
