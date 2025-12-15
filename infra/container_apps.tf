@@ -41,6 +41,12 @@ resource "azurerm_container_app" "backend" {
         value = "true"
       }
 
+      # Allow frontend origin for browser calls
+      env {
+        name  = "CORS_ORIGINS"
+        value = "https://${var.project_name}-frontend.${azurerm_container_app_environment.cae.default_domain}"
+      }
+
       env {
         name        = "REDIS_PASSWORD"
         secret_name = "redis-password"
