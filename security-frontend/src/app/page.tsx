@@ -360,7 +360,7 @@ export default function HomePage() {
       >
         <div>
           <h1 style={{ margin: 0, fontSize: "1.4rem" }}>
-            Cloud Security Config Checker
+            CloudHostInspector™
           </h1>
           <p style={{ margin: 0, fontSize: "0.8rem", color: "#c6c6c6" }}>
             Active host scanning · Nmap + FastAPI + Redis · Carbon Design

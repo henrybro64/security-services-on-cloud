@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("security-service")
 
 app = FastAPI(
-title="Security Config Checker",
+title="CloudHostInspector",
 description="Prototype security service using FastAPI + Redis, deployable on Azure.",
 version="0.1.0",
 )
