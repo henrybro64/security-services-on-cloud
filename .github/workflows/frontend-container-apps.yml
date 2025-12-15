@@ -40,22 +40,81 @@ jobs:
           az acr login --name ${{ env.ACR_NAME }}
 
       # 3) Build and push the frontend image
+      # Using Docker layer caching to speed up builds (saves 5-10 minutes)
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
         with:
           context: ./security-frontend
           push: true
+          # Enable build cache to speed up subsequent builds
+          cache-from: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           tags: |
             ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
 
-      # 4) Update Container App with new image
-      - name: Update Container App
+      # 4) Update Container App with new image and configure registry
+      # Note: Container App is created by Terraform with placeholder image (no registry block)
+      # This step adds registry authentication and updates the image
+      - name: Update Container App with new image
         run: |
+          # Add registry configuration for ACR authentication (if not already present)
+          echo "Configuring Container App registry authentication..."
+          az containerapp registry set \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --server ${{ env.AZURE_CONTAINER_REGISTRY }} \
+            --identity system || echo "Registry may already be configured"
+          
+          # Update the Container App with the new image
+          echo "Updating Container App with new image..."
           az containerapp update \
             --name ${{ env.CONTAINER_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          
+          # Wait for the new revision to be ready (poll until active)
+          echo "Waiting for Container App revision to be ready..."
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            # Get the latest revision status
+            REVISION_STATUS=$(az containerapp revision list \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --query "[0].{name:name, active:properties.active, healthState:properties.healthState, trafficWeight:properties.trafficWeight}" \
+              -o json 2>/dev/null)
+            
+            if [ -z "$REVISION_STATUS" ]; then
+              echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Waiting for revision to appear..."
+              sleep 5
+              ATTEMPT=$((ATTEMPT + 1))
+              continue
+            fi
+            
+            # Parse JSON (jq is available on GitHub Actions runners)
+            ACTIVE=$(echo "$REVISION_STATUS" | jq -r '.active // false')
+            HEALTH=$(echo "$REVISION_STATUS" | jq -r '.healthState // "Unknown"')
+            
+            if [ "$ACTIVE" = "true" ] && [ "$HEALTH" = "Healthy" ]; then
+              echo "✅ Container App revision is ready!"
+              echo "$REVISION_STATUS" | jq '.'
+              break
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Revision not ready yet (active=$ACTIVE, health=$HEALTH)..."
+            sleep 5
+          done
+          
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "⚠️ Warning: Container App revision did not become ready within timeout"
+            echo "Showing latest revision status:"
+            az containerapp revision list \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              -o table
+          fi
 

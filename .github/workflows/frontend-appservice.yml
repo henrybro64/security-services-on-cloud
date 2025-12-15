@@ -1,4 +1,8 @@
-name: Build and deploy frontend to App Service
+name: Build and deploy frontend to App Service (LEGACY - Not Used)
+
+# NOTE: This workflow is kept for reference only.
+# Current deployment uses Container Apps (see frontend-container-apps.yml)
+# This workflow is for App Service deployment if needed in the future.
 
 on:
   push:

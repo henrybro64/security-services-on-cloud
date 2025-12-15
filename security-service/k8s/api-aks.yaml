@@ -32,14 +32,18 @@ spec:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            initialDelaySeconds: 3  # Reduced from 5s for faster startup
+            periodSeconds: 5        # Check more frequently (was 10s)
+            timeoutSeconds: 3       # Timeout for probe
+            failureThreshold: 3     # Allow 3 failures before marking unready
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
             initialDelaySeconds: 20
             periodSeconds: 20
+            timeoutSeconds: 3       # Timeout for probe
+            failureThreshold: 3     # Allow 3 failures before restart
           resources:
             requests:
               cpu: 200m

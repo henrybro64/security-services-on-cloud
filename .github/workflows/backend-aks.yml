@@ -1,4 +1,8 @@
-name: Build and deploy backend to AKS
+name: Build and deploy backend to AKS (LEGACY - Not Used)
+
+# NOTE: This workflow is kept for reference only.
+# Current deployment uses Container Apps (see backend-container-apps.yml)
+# This workflow is for AKS deployment if needed in the future.
 
 on:
   push:
@@ -50,11 +54,15 @@ jobs:
           az acr login --name ${{ env.ACR_NAME }}
 
       # 4) Build and push the backend image
+      # Using Docker layer caching to speed up builds
       - name: Build and push API image
         uses: docker/build-push-action@v6
         with:
           context: ./security-service
           push: true
+          # Enable build cache to speed up subsequent builds
+          cache-from: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           tags: |
             ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest

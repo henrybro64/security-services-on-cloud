@@ -1,0 +1,100 @@
+{
+  "version": 4,
+  "terraform_version": "1.5.7",
+  "serial": 96,
+  "lineage": "99f8288a-4f8a-3191-1d16-9739afd4193b",
+  "outputs": {},
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "azurerm_redis_cache",
+      "name": "redis",
+      "provider": "provider[\"registry.terraform.io/hashicorp/azurerm\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "access_keys_authentication_enabled": true,
+            "capacity": 1,
+            "family": "C",
+            "hostname": "securityproj-redis.redis.cache.windows.net",
+            "id": "/subscriptions/55f22fc6-910b-48e6-bbbf-dea69b35b455/resourceGroups/securityproj-rg/providers/Microsoft.Cache/redis/securityproj-redis",
+            "identity": [],
+            "location": "eastus",
+            "minimum_tls_version": "1.2",
+            "name": "securityproj-redis",
+            "non_ssl_port_enabled": false,
+            "patch_schedule": [],
+            "port": 6379,
+            "primary_access_key": "SAUjSBFbEQB43VCFdy3yFNGDNeB94dknqAzCaOgM4Qw=",
+            "primary_connection_string": "securityproj-redis.redis.cache.windows.net:6380,password=SAUjSBFbEQB43VCFdy3yFNGDNeB94dknqAzCaOgM4Qw=,ssl=true,abortConnect=False",
+            "private_static_ip_address": "",
+            "public_network_access_enabled": true,
+            "redis_configuration": [
+              {
+                "active_directory_authentication_enabled": false,
+                "aof_backup_enabled": false,
+                "aof_storage_connection_string_0": "",
+                "aof_storage_connection_string_1": "",
+                "authentication_enabled": true,
+                "data_persistence_authentication_method": "",
+                "maxclients": 1000,
+                "maxfragmentationmemory_reserved": 125,
+                "maxmemory_delta": 125,
+                "maxmemory_policy": "",
+                "maxmemory_reserved": 125,
+                "notify_keyspace_events": "",
+                "rdb_backup_enabled": false,
+                "rdb_backup_frequency": 0,
+                "rdb_backup_max_snapshot_count": 0,
+                "rdb_storage_connection_string": "",
+                "storage_account_subscription_id": ""
+              }
+            ],
+            "redis_version": "6.0",
+            "replicas_per_master": 0,
+            "replicas_per_primary": 0,
+            "resource_group_name": "securityproj-rg",
+            "secondary_access_key": "f9B0C0swmQzclTDzjgOlNiahjhDExmdDdAzCaHJcd7w=",
+            "secondary_connection_string": "securityproj-redis.redis.cache.windows.net:6380,password=f9B0C0swmQzclTDzjgOlNiahjhDExmdDdAzCaHJcd7w=,ssl=true,abortConnect=False",
+            "shard_count": 0,
+            "sku_name": "Basic",
+            "ssl_port": 6380,
+            "subnet_id": "",
+            "tags": {},
+            "tenant_settings": {},
+            "timeouts": null,
+            "zones": []
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMDgwMDAwMDAwMDAwMCwiZGVsZXRlIjoxMDgwMDAwMDAwMDAwMCwicmVhZCI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEwODAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "azurerm_resource_group.rg"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "azurerm_resource_group",
+      "name": "rg",
+      "provider": "provider[\"registry.terraform.io/hashicorp/azurerm\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "/subscriptions/55f22fc6-910b-48e6-bbbf-dea69b35b455/resourceGroups/securityproj-rg",
+            "location": "eastus",
+            "managed_by": "",
+            "name": "securityproj-rg",
+            "tags": {},
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo1NDAwMDAwMDAwMDAwLCJkZWxldGUiOjU0MDAwMDAwMDAwMDAsInJlYWQiOjMwMDAwMDAwMDAwMCwidXBkYXRlIjo1NDAwMDAwMDAwMDAwfX0="
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

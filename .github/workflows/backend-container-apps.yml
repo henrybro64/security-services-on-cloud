@@ -1,0 +1,118 @@
+name: Build and deploy backend to Container Apps
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "security-service/**"
+      - ".github/workflows/backend-container-apps.yml"
+
+env:
+  # Azure resources (from Terraform deployment)
+  AZURE_CONTAINER_REGISTRY: securityserviceacr.azurecr.io
+  ACR_NAME: securityserviceacr
+  RESOURCE_GROUP: securityproj-rg
+  IMAGE_NAME: security-service-api
+  CONTAINER_APP_NAME: securityproj-backend
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1) Login to Azure using OIDC
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # 2) Log in to ACR for docker push
+      - name: Docker login to ACR
+        run: |
+          az acr login --name ${{ env.ACR_NAME }}
+
+      # 3) Build and push the backend image
+      # Using Docker layer caching to speed up builds
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./security-service
+          push: true
+          # Enable build cache to speed up subsequent builds
+          cache-from: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          tags: |
+            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      # 4) Update Container App with new image and configure registry
+      # Note: Container App is created by Terraform with placeholder image (no registry block)
+      # This step adds registry authentication and updates the image
+      - name: Update Container App with new image
+        run: |
+          # Add registry configuration for ACR authentication (if not already present)
+          echo "Configuring Container App registry authentication..."
+          az containerapp registry set \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --server ${{ env.AZURE_CONTAINER_REGISTRY }} \
+            --identity system || echo "Registry may already be configured"
+          
+          # Update the Container App with the new image
+          echo "Updating Container App with new image..."
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          
+          # Wait for the new revision to be ready (poll until active)
+          echo "Waiting for Container App revision to be ready..."
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            # Get the latest revision status
+            REVISION_STATUS=$(az containerapp revision list \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --query "[0].{name:name, active:properties.active, healthState:properties.healthState, trafficWeight:properties.trafficWeight}" \
+              -o json 2>/dev/null)
+            
+            if [ -z "$REVISION_STATUS" ]; then
+              echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Waiting for revision to appear..."
+              sleep 5
+              ATTEMPT=$((ATTEMPT + 1))
+              continue
+            fi
+            
+            # Parse JSON (jq is available on GitHub Actions runners)
+            ACTIVE=$(echo "$REVISION_STATUS" | jq -r '.active // false')
+            HEALTH=$(echo "$REVISION_STATUS" | jq -r '.healthState // "Unknown"')
+            
+            if [ "$ACTIVE" = "true" ] && [ "$HEALTH" = "Healthy" ]; then
+              echo "✅ Container App revision is ready!"
+              echo "$REVISION_STATUS" | jq '.'
+              break
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Revision not ready yet (active=$ACTIVE, health=$HEALTH)..."
+            sleep 5
+          done
+          
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "⚠️ Warning: Container App revision did not become ready within timeout"
+            echo "Showing latest revision status:"
+            az containerapp revision list \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              -o table
+          fi
+
