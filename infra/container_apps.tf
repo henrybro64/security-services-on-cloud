@@ -103,7 +103,8 @@ resource "azurerm_container_app" "frontend" {
 
       env {
         name  = "NEXT_PUBLIC_API_BASE_URL"
-        value = "https://${azurerm_container_app.backend.latest_revision_fqdn}"
+        # Use stable app FQDN (not revision-specific) for backend API
+        value = "https://${azurerm_container_app.backend.ingress[0].fqdn}"
       }
     }
   }
