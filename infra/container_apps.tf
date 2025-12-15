@@ -61,7 +61,8 @@ resource "azurerm_container_app" "backend" {
   # Let GitHub Actions manage image updates
   lifecycle {
     ignore_changes = [
-      template[0].container[0].image
+      template[0].container[0].image,
+      registry
     ]
   }
 
@@ -122,7 +123,8 @@ resource "azurerm_container_app" "frontend" {
   # Let GitHub Actions manage image updates
   lifecycle {
     ignore_changes = [
-      template[0].container[0].image
+      template[0].container[0].image,
+      registry
     ]
   }
 
