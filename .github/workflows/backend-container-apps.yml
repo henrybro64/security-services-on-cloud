@@ -16,8 +16,63 @@ env:
   CONTAINER_APP_NAME: securityproj-backend
 
 jobs:
+  test:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          cd security-service
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+
+      - name: Install Playwright browsers
+        run: |
+          python -m playwright install --with-deps chromium
+
+      - name: Start backend API
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_SSL: "false"
+          ABUSEIPDB_API_KEY: ${{ secrets.ABUSEIPDB_API_KEY }}
+        run: |
+          cd security-service
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level warning &
+          for i in {1..20}; do
+            if curl -fsS http://localhost:8000/health >/dev/null 2>&1; then
+              echo "API is up"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "API failed to start"
+          exit 1
+
+      - name: Run backend tests
+        env:
+          API_BASE_URL: http://localhost:8000
+        run: |
+          cd security-service
+          pytest
+
   build-and-deploy:
     runs-on: ubuntu-latest
+    needs: test
     permissions:
       id-token: write
       contents: read
