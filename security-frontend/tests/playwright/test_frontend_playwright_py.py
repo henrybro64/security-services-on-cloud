@@ -119,8 +119,9 @@ def test_scan_host_flow(page: Page):
     )
 
     # Risk badge can vary; accept any of the known labels.
+    # Use .first() to handle cases where multiple risk badges are present (e.g., "Low risk" and "Clean / Low risk").
     expect(
-        page.get_by_text(re.compile(r"(High risk|Medium risk|Low risk)", re.I))
+        page.get_by_text(re.compile(r"(High risk|Medium risk|Low risk)", re.I)).first
     ).to_be_visible(timeout=120_000)
 
     expect(page.get_by_text("Issues")).to_be_visible(timeout=120_000)
