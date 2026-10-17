@@ -8,6 +8,7 @@ on:
       - ".github/workflows/frontend-container-apps.yml"
 
 env:
+  DOCKER_BUILD_RECORD_RETENTION_DAYS: 3
   # Azure resources (from Terraform deployment)
   AZURE_CONTAINER_REGISTRY: securityserviceacr.azurecr.io
   ACR_NAME: securityserviceacr
